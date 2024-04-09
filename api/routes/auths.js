@@ -47,10 +47,46 @@ router.post("/login", async (req, res) => {
         if(!isPassswordCorrect){
             return res.status(401).json("Mot de passe incorrect !");
         }
+
+        user.isConnected = true;
+        await user.save();
+
         pusher.trigger("user-channel", "user-connected", {
             userId: user?._id,
             name: user?.name
         });
+        
+        const {password, ...others} = user._doc;
+        return res.status(201).json(others);
+
+    }catch(err){
+        return res.status(500).json(err)
+    }
+})
+
+//LOGOUT
+router.post("/login", async (req, res) => {
+    try{
+
+        const user = await User.findOne({email: req.body.email});
+        if(!user){
+            return res.status(401).json("Utilisateur non trouvé !");
+        }
+
+        const isPassswordCorrect = user.password === req.body.password;
+
+        if(!isPassswordCorrect){
+            return res.status(401).json("Mot de passe incorrect !");
+        }
+
+        user.isConnected = true;
+        await user.save();
+
+        pusher.trigger("user-channel", "user-connected", {
+            userId: user?._id,
+            name: user?.name
+        });
+
         const {password, ...others} = user._doc;
         return res.status(201).json(others);
 

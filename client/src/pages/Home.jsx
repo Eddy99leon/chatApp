@@ -13,8 +13,6 @@ const Home = () => {
   const [userConnected, setUserConnected] = useState([]);
   const [receiveId, setReceiveId] = useState();
 
-  console.log(messages);
-
   const navigate = useNavigate();
   const userData = localStorage.getItem("userData");
   const user = JSON.parse(userData);
@@ -79,6 +77,15 @@ const Home = () => {
       cluster: "ap2",
     });
 
+    makeRequest
+      .get("/api/users/connected")
+      .then((response) => {
+        setUserConnected(response.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
     const channel = pusher.subscribe("user-channel");
     channel.bind("user-connected", (newUser) => {
       setUserConnected([...userConnected, newUser]);
@@ -88,7 +95,7 @@ const Home = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [userConnected]);
+  }, []);
 
 
   return (

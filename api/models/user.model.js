@@ -16,6 +16,10 @@ const userSchema = new Schema({
     type: String,
     require: true,
   },
+  isConnected: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const User = mongoose.models?.User || mongoose.model("User", userSchema);

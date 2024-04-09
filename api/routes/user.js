@@ -3,6 +3,17 @@ import User from "../models/user.model.js";
 
 const router = express.Router();
 
+
+//GET ALL USERS CONNECTED
+router.get("/connected", async (req, res) => {
+    try{
+        const connectedUsers = await User.find({ isConnected: true });
+        return res.status(200).json(connectedUsers);
+    }catch(err){
+        return res.status(500).json(err)
+    }
+})
+
 //GET USER
 router.get("/:id", async (req, res) => {
     try{
