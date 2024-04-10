@@ -65,35 +65,26 @@ router.post("/login", async (req, res) => {
 })
 
 //LOGOUT
-router.post("/login", async (req, res) => {
-    try{
+router.post("/logout/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
 
-        const user = await User.findOne({email: req.body.email});
-        if(!user){
-            return res.status(401).json("Utilisateur non trouvé !");
-        }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isConnected: false },
+      { new: true }
+    );
 
-        const isPassswordCorrect = user.password === req.body.password;
+    pusher.trigger("user-channel", "user-disconnected", {
+      userId: user?._id,
+      name: user?.name,
+    });
 
-        if(!isPassswordCorrect){
-            return res.status(401).json("Mot de passe incorrect !");
-        }
-
-        user.isConnected = true;
-        await user.save();
-
-        pusher.trigger("user-channel", "user-connected", {
-            userId: user?._id,
-            name: user?.name
-        });
-
-        const {password, ...others} = user._doc;
-        return res.status(201).json(others);
-
-    }catch(err){
-        return res.status(500).json(err)
-    }
-})
+    return res.status(200).json(`${user.name} s'est déconnecté`);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+});
 
 
 export default router

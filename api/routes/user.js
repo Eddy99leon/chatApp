@@ -8,7 +8,13 @@ const router = express.Router();
 router.get("/connected", async (req, res) => {
     try{
         const connectedUsers = await User.find({ isConnected: true });
-        return res.status(200).json(connectedUsers);
+
+        const formattedUsers = connectedUsers.map((user) => ({
+          userId: user._id,
+          name: user.name,
+        }));
+
+        return res.status(200).json(formattedUsers);
     }catch(err){
         return res.status(500).json(err)
     }
