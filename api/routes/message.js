@@ -17,19 +17,26 @@ const pusher = new Pusher({
 router.post("/", async (req, res) => {
   try {
     const { sendId, sendName, receiveId, content, time } = req.body;
-    const newMessage = await Message.create({
+    pusher.trigger(`${receiveId}`, "inserted", {
+      sendId: sendId,
+      sendName: sendName,
+      receiveId: receiveId,
+      content: content,
+      time: time,
+    });
+    pusher.trigger(`${sendId}`, "inserted", {
+      sendId: sendId,
+      sendName: sendName,
+      receiveId: receiveId,
+      content: content,
+      time: time,
+    });
+    await Message.create({
       sendId,
       sendName,
       receiveId,
       content,
       time,
-    });
-    pusher.trigger("messages", "inserted", {
-      sendId: newMessage.sendId,
-      sendName: newMessage.sendName,
-      receiveId: newMessage.receiveId,
-      content: newMessage.content,
-      time: newMessage.time,
     });
     res.send("Message créé avec succès");
   } catch (error) {

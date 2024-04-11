@@ -7,7 +7,6 @@ import Messages from "../components/Messages";
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
 const Home = () => {
-  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [userConnected, setUserConnected] = useState([]);
   const [receiveId, setReceiveId] = useState();
@@ -44,24 +43,6 @@ const Home = () => {
   };
 
 
-  //pusher envoyer message
-  useEffect(() => {
-    const pusher = new Pusher(PUSHER_KEY, {
-      cluster: "ap2",
-    });
-
-    const channel = pusher.subscribe("messages");
-    channel.bind("inserted", (newMessage) => {
-      setMessages([...messages, newMessage]);
-    });
-
-    return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
-    };
-  }, [messages]);
-
-
   //get all userConnected
   useEffect(() => {
     makeRequest
@@ -75,7 +56,7 @@ const Home = () => {
   },[])
 
 
-  //pusher userConnected
+  //pusher get user Connected and Disconnected
   useEffect(() => {
     const pusher = new Pusher(PUSHER_KEY, {
       cluster: "ap2",
@@ -97,6 +78,12 @@ const Home = () => {
     };
   }, [userConnected]);
 
+
+  // Filtrer les anciens messages en fonction de receiveId
+  const filteredUserConnected = userConnected?.filter(
+    (user) => user.userId !== currentUser._id
+  );
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="py-20">
@@ -106,7 +93,7 @@ const Home = () => {
         <div className="grid grid-cols-4 gap-2">
           <div className="col-span-3">
             <div className="border border-gray-700 h-[400px] w-full mb-3 overflow-y-auto p-4">
-              <Messages messages={messages} receiveId={receiveId} />
+              <Messages receiveId={receiveId} />
             </div>
             <div className="flex items-center gap-3 w-full">
               <textarea
@@ -128,8 +115,7 @@ const Home = () => {
               Users connected: {userConnected?.length}
             </h1>
             <div className="space-y-2">
-              {userConnected?.map((user) => {
-                if (user.userId !== currentUser._id) {
+              {filteredUserConnected?.map((user) => {
                   return (
                     <div
                       key={user.userId}
@@ -141,9 +127,6 @@ const Home = () => {
                       {user.name}
                     </div>
                   );
-                } else {
-                  return null;
-                }
               })}
             </div>
           </div>

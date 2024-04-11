@@ -1,41 +1,61 @@
 import React, { useEffect, useState } from "react";
 import { makeRequest } from "../utils/axios";
 import CardMessage from "./CardMessage";
+import Pusher from "pusher-js";
 
-const Messages = ({ messages, receiveId }) => {
-  const [oldMessages, setOldMessages] = useState();
+
+const PUSHER_KEY = "cd9b038ddbd2f6499c97";
+
+const Messages = ({ receiveId }) => {
+  const [messages, setMessages] = useState([]);
+  const currentUser = JSON.parse(localStorage.getItem("userData"));
+
 
   useEffect(() => {
     makeRequest
       .get("/api/messages")
       .then((response) => {
-        setOldMessages(response.data);
+        const filteredMessages = response.data.filter(message => 
+          (message.sendId === currentUser?._id && message.receiveId === receiveId) 
+          || 
+          (message.sendId === receiveId && message.receiveId === currentUser?._id)
+        );
+        setMessages(filteredMessages);
       })
       .catch((error) => {
         console.log("Erreur de recuperation des messages:", error);
       });
-  }, []);
+  }, [receiveId]);
 
-  // Filtrer les anciens messages en fonction de receiveId
-  const filteredOldMessages = oldMessages?.filter(
-    (message) => message.receiveId === receiveId
-  );
 
-  // Filtrer les messages en cours en fonction de receiveId
-  const filteredMessages = messages?.filter(
-    (message) => message.receiveId === receiveId
-  );
+  //pusher get message
+  useEffect(() => {
+    const pusher = new Pusher(PUSHER_KEY, {
+      cluster: "ap2",
+    });
+
+    const channel = pusher.subscribe(`${currentUser?._id}`, `${receiveId}`);
+    channel.bind("inserted", (newMessage) => {
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    });
+
+    return () => {
+      channel.unbind_all();
+      channel.unsubscribe();
+    };
+  }, [currentUser?._id]);
+
 
   return (
     <div className="w-full h-full">
       {receiveId ? (
         <div>
-          {filteredOldMessages?.map((message, index) => {
+          {messages?.map((message, index) => {
             return <CardMessage key={index} message={message} />;
           })}
-          {filteredMessages?.map((message, index) => {
+          {/* {messages?.map((message, index) => {
             return <CardMessage key={index} message={message} />;
-          })}
+          })} */}
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-slate-900">
