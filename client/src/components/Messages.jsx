@@ -34,16 +34,21 @@ const Messages = ({ receiveId }) => {
       cluster: "ap2",
     });
 
-    const channel = pusher.subscribe(`${currentUser?._id}`, `${receiveId}`);
+    const channel = pusher.subscribe(`${currentUser?._id}`,`${receiveId}`);
     channel.bind("inserted", (newMessage) => {
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      if (
+        (newMessage.sendId === currentUser?._id && newMessage.receiveId === receiveId) ||
+        (newMessage.sendId === receiveId && newMessage.receiveId === currentUser?._id)
+      ) {
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      }
     });
 
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [currentUser?._id]);
+  }, [currentUser?._id, receiveId]);
 
 
   return (
@@ -53,9 +58,6 @@ const Messages = ({ receiveId }) => {
           {messages?.map((message, index) => {
             return <CardMessage key={index} message={message} />;
           })}
-          {/* {messages?.map((message, index) => {
-            return <CardMessage key={index} message={message} />;
-          })} */}
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-slate-900">
