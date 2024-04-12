@@ -6,7 +6,7 @@ import Pusher from "pusher-js";
 
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
-const Messages = ({ receiveId }) => {
+const Messages = ({ receiveId, setUpdate }) => {
   const [messages, setMessages] = useState([]);
   const currentUser = JSON.parse(localStorage.getItem("userData"));
 
@@ -43,6 +43,23 @@ const Messages = ({ receiveId }) => {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
       }
     });
+    channel.bind("deleted", (deleteMessageId) => {
+      setMessages((prevMessages) =>
+        prevMessages.filter((message) => message._id !== deleteMessageId)
+      );
+    });
+    channel.bind("updated", (updateMessage) => {
+      setMessages(prevMessages => {
+        const messageIndex = prevMessages.findIndex(message => message._id === updateMessage._id);
+        if (messageIndex !== -1) {
+          const updatedMessages = [...prevMessages];
+          updatedMessages[messageIndex] = updateMessage;
+          return updatedMessages;
+        } else {
+          return prevMessages;
+        }
+      });
+    });
 
     return () => {
       channel.unbind_all();
@@ -56,7 +73,7 @@ const Messages = ({ receiveId }) => {
       {receiveId ? (
         <div>
           {messages?.map((message, index) => {
-            return <CardMessage key={index} message={message} />;
+            return <CardMessage key={index} message={message} setUpdate={setUpdate} />;
           })}
         </div>
       ) : (

@@ -10,6 +10,7 @@ const Home = () => {
   const [newMessage, setNewMessage] = useState("");
   const [userConnected, setUserConnected] = useState([]);
   const [receiveId, setReceiveId] = useState();
+  const [ update, setUpdate ] = useState()
 
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("userData"));
@@ -40,6 +41,26 @@ const Home = () => {
         console.log("Error sending message:", error);
       });
     setNewMessage("");
+  };
+
+  //update message
+  const UpdateMessage = () => {
+    makeRequest
+      .put(`/api/messages/${update._id}`, {
+        sendId: update.sendId,
+        sendName: update.sendName,
+        receiveId: update.receiveId,
+        content: newMessage,
+        time: update.time,
+      })
+      .then((response) => {
+        console.log(response.data);
+      })
+      .catch((error) => {
+        console.log("Error update message:", error);
+      });
+    setNewMessage("");
+    setUpdate()
   };
 
 
@@ -93,22 +114,43 @@ const Home = () => {
         <div className="grid grid-cols-4 gap-2">
           <div className="col-span-3">
             <div className="border border-gray-700 h-[400px] w-full mb-3 overflow-y-auto p-4">
-              <Messages receiveId={receiveId} />
+              <Messages receiveId={receiveId} setUpdate={setUpdate} />
             </div>
-            <div className="flex items-center gap-3 w-full">
-              <textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                className="bg-gray-800 p-2 text-lg w-full border-none outline-none rounded-lg"
-                placeholder="Entrer votre message"
-              />
-              <button
-                onClick={SendMessage}
-                className=" bg-violet-800 p-5 text-xl font-bold text-black rounded-lg"
-              >
-                Envoyer
-              </button>
-            </div>
+            { update? 
+              <div className="flex items-center gap-3 w-full">
+                <textarea
+                  defaultValue={update.content}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="bg-gray-800 p-2 text-lg w-full border-none outline-none rounded-lg"
+                  placeholder="Entrer votre message"
+                >
+                  {update.content}
+                </textarea>
+                <button
+                  onClick={UpdateMessage}
+                  className=" bg-violet-800 p-5 text-xl font-bold text-black rounded-lg"
+                >
+                  Envoyer
+                </button>
+              </div> 
+              : 
+              <div className="flex items-center gap-3 w-full">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="bg-gray-800 p-2 text-lg w-full border-none outline-none rounded-lg"
+                  placeholder="Entrer votre message"
+                />
+                <button
+                  onClick={SendMessage}
+                  className=" bg-violet-800 p-5 text-xl font-bold text-black rounded-lg"
+                >
+                  Envoyer
+                </button>
+              </div>
+            }
+            
           </div>
           <div>
             <h1 className="font-bold text-xl mb-3">

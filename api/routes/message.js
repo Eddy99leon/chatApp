@@ -17,7 +17,17 @@ const pusher = new Pusher({
 router.post("/", async (req, res) => {
   try {
     const { sendId, sendName, receiveId, content, time } = req.body;
+    
+    const message = await Message.create({
+      sendId,
+      sendName,
+      receiveId,
+      content,
+      time,
+    });
+
     pusher.trigger(`${receiveId}`, "inserted", {
+      _id: message._id,
       sendId: sendId,
       sendName: sendName,
       receiveId: receiveId,
@@ -25,19 +35,14 @@ router.post("/", async (req, res) => {
       time: time,
     });
     pusher.trigger(`${sendId}`, "inserted", {
+      _id: message._id,
       sendId: sendId,
       sendName: sendName,
       receiveId: receiveId,
       content: content,
       time: time,
     });
-    await Message.create({
-      sendId,
-      sendName,
-      receiveId,
-      content,
-      time,
-    });
+
     res.send("Message créé avec succès");
   } catch (error) {
     console.error(error);
@@ -54,5 +59,51 @@ router.get("/", async (req, res) => {
         return res.status(500).json(err)
     }
 })
+
+//DELETE MESSAGE
+router.delete("/:id", async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.id);
+    
+    if (!message) {
+      return res.status(404).json("Message not found");
+    }
+
+    pusher.trigger(`${message?.receiveId}`, "deleted", message?._id);
+    pusher.trigger(`${message?.sendId}`, "deleted", message?._id);
+
+    await Message.findByIdAndDelete(message._id);
+    return res.status(200).json("Message deleted successfully", );
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//UPDATE MESSAGE
+router.put("/:id", async (req, res) => {
+  try {
+    const messageId = req.params.id;
+    const { content } = req.body;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json("Message not found");
+    }
+
+    message.content = content;
+    await message.save()
+
+    pusher.trigger(`${message.receiveId}`, "updated", message);
+    pusher.trigger(`${message.sendId}`, "updated", message);
+
+    return res.status(200).json("Message update successfully", );
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 export default router;
