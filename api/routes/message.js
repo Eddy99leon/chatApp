@@ -14,6 +14,14 @@ const pusher = new Pusher({
   useTLS: true,
 });
 
+
+router.post('/text-update', (req, res) => {
+  const { text } = req.body;
+  pusher.trigger('editor', 'text-update', { text });
+  res.status(200).send('OK');
+});
+
+//POST A MESSAGE
 router.post("/", async (req, res) => {
   try {
     const { sendId, sendName, receiveId, content, time } = req.body;

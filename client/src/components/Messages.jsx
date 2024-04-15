@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { makeRequest } from "../utils/axios";
 import CardMessage from "./CardMessage";
 import Pusher from "pusher-js";
+import { useRef } from "react";
 
 
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
 const Messages = ({ receiveId, setUpdate }) => {
   const [messages, setMessages] = useState([]);
+  const messageEndRef = useRef(null)
   const currentUser = JSON.parse(localStorage.getItem("userData"));
 
 
@@ -35,6 +37,7 @@ const Messages = ({ receiveId, setUpdate }) => {
     });
 
     const channel = pusher.subscribe(`${currentUser?._id}`,`${receiveId}`);
+    //envoyer un message
     channel.bind("inserted", (newMessage) => {
       if (
         (newMessage.sendId === currentUser?._id && newMessage.receiveId === receiveId) ||
@@ -43,11 +46,13 @@ const Messages = ({ receiveId, setUpdate }) => {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
       }
     });
+    //supprimer un message
     channel.bind("deleted", (deleteMessageId) => {
       setMessages((prevMessages) =>
         prevMessages.filter((message) => message._id !== deleteMessageId)
       );
     });
+    //mise a jour d'un message
     channel.bind("updated", (updateMessage) => {
       setMessages(prevMessages => {
         const messageIndex = prevMessages.findIndex(message => message._id === updateMessage._id);
@@ -67,14 +72,25 @@ const Messages = ({ receiveId, setUpdate }) => {
     };
   }, [currentUser?._id, receiveId]);
 
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom();
+  },[messages])
+
 
   return (
     <div className="w-full h-full">
       {receiveId ? (
         <div>
-          {messages?.map((message, index) => {
-            return <CardMessage key={index} message={message} setUpdate={setUpdate} />;
-          })}
+          <div>
+            {messages?.map((message, index) => {
+              return <CardMessage key={index} message={message} setUpdate={setUpdate} />;
+            })}
+          </div>
+          <div ref={messageEndRef}></div>
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-slate-900">
