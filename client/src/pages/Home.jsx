@@ -4,22 +4,21 @@ import Pusher from "pusher-js";
 import { makeRequest } from "../utils/axios";
 import Messages from "../components/Messages";
 import { useSelector, useDispatch } from "react-redux";
-import { addUser, updateUser, deleteUser } from "../redux/userSlice";
-import Entrain from "../components/Entrain";
+import { addUser, deleteUser } from "../redux/userSlice";
+import UserCard from "../components/UserCard";
 
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
 const Home = () => {
-  const [newMessage, setNewMessage] = useState();
-  const [userConnected, setUserConnected] = useState([]);
+  const dispatch = useDispatch();
+  const users = useSelector((state) => state.user.users);
+
+  const [newMessage, setNewMessage] = useState('');
   const [receiveId, setReceiveId] = useState();
   const [ update, setUpdate ] = useState()
 
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("userData"));
-  const users = useSelector((state) => state.user.users);
-  const dispatch = useDispatch();
-
 
   //verifier si connecter
   useEffect(() => {
@@ -74,7 +73,7 @@ const Home = () => {
     makeRequest
       .get("/api/users/connected")
       .then((response) => {
-        setUserConnected(response.data);
+        dispatch(addUser(response.data));
       })
       .catch((error) => {
         console.log(error);
@@ -90,23 +89,21 @@ const Home = () => {
 
     const channel = pusher.subscribe("user-channel");
     channel.bind("user-connected", (newUser) => {
-      setUserConnected([...userConnected, newUser]);
+      dispatch(addUser(newUser));
     });
     channel.bind("user-disconnected", (disconnectedUser) => {
-      setUserConnected((prevUsers) =>
-        prevUsers.filter((user) => user.userId !== disconnectedUser.userId)
-      );
+      dispatch(deleteUser(disconnectedUser));
     });
 
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [userConnected]);
+  }, [users]);
 
 
   // Filtrer les anciens messages en fonction de receiveId
-  const filteredUserConnected = userConnected?.filter(
+  const filteredUserConnected = users?.filter(
     (user) => user.userId !== currentUser._id
   );
 
@@ -119,12 +116,12 @@ const Home = () => {
         <div className="grid grid-cols-4 gap-2">
           <div className="col-span-3">
             <div className="border border-gray-700 h-[400px] w-full mb-3 overflow-y-auto p-4">
-              <Messages receiveId={receiveId} setUpdate={setUpdate} />
+              <Messages receiveId={receiveId} setUpdate={setUpdate} newMessage={newMessage} />
             </div>
             { update ? 
               <div className="flex items-center gap-3 w-full">
                 <textarea
-                  defaultValue={update.content}
+                  // defaultValue={update.content}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   className="bg-gray-800 border border-gray-400 p-2 text-lg w-full outline-none rounded-lg"
@@ -140,7 +137,7 @@ const Home = () => {
               : 
               <div className="flex items-center gap-3 w-full">
                 <textarea
-                  defaultValue=""
+                  // defaultValue=""
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   className="bg-gray-800 p-2 text-lg w-full border-none outline-none rounded-lg"
@@ -158,7 +155,7 @@ const Home = () => {
           </div>
           <div>
             <h1 className="font-bold text-xl mb-3">
-              Users connected: {userConnected?.length}
+              Users connected: {users?.length}
             </h1>
             <div className="space-y-2">
               {filteredUserConnected?.map((user) => {
@@ -166,11 +163,8 @@ const Home = () => {
                     <div
                       key={user.userId}
                       onClick={() => setReceiveId(user.userId)}
-                      className={`border border-gray-600 p-2 cursor-pointer ${
-                        receiveId === user.userId ? "bg-gray-700" : ""
-                      }`}
                     >
-                      {user.name}
+                      <UserCard user={user} receiveId={receiveId} />
                     </div>
                   );
               })}
@@ -178,7 +172,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <Entrain />
     </div>
   );
 };

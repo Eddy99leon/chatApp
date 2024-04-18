@@ -3,14 +3,46 @@ import { makeRequest } from "../utils/axios";
 import CardMessage from "./CardMessage";
 import Pusher from "pusher-js";
 import { useRef } from "react";
+import Entrain from "../components/Entrain";
+import { addMessage, updateMessage, deleteMessage } from "../redux/MessageSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
-const Messages = ({ receiveId, setUpdate }) => {
-  const [messages, setMessages] = useState([]);
+const Messages = ({ receiveId, setUpdate, newMessage }) => {
+  const dispatch = useDispatch();
+  const messages = useSelector((state) => state.message.messages);
+
   const messageEndRef = useRef(null)
   const currentUser = JSON.parse(localStorage.getItem("userData"));
+
+
+  useEffect(() => {
+    messages.map((m) => {
+      if(m.statut === "non lu"){
+        console.log(m)
+        
+        makeRequest
+        .put(`/api/messages/${m._id}`, {
+          sendId: m.sendId,
+          sendName: m.sendName,
+          receiveId: m.receiveId,
+          content: m.content,
+          statut: "lu",
+          time: m.time,
+        })
+        .then((response) => {
+          console.log(response.data);
+        })
+        .catch((error) => {
+          console.log("Error update message status:", error);
+        });
+      }else{
+        return m;
+      }
+    })
+  },[receiveId])
 
 
   useEffect(() => {
@@ -18,11 +50,11 @@ const Messages = ({ receiveId, setUpdate }) => {
       .get("/api/messages")
       .then((response) => {
         const filteredMessages = response.data.filter(message => 
-          (message.sendId === currentUser?._id && message.receiveId === receiveId) 
+          (message.sendId === currentUser?._id && message.receiveId === receiveId)
           || 
           (message.sendId === receiveId && message.receiveId === currentUser?._id)
         );
-        setMessages(filteredMessages);
+        dispatch(addMessage(filteredMessages));
       })
       .catch((error) => {
         console.log("Erreur de recuperation des messages:", error);
@@ -43,27 +75,16 @@ const Messages = ({ receiveId, setUpdate }) => {
         (newMessage.sendId === currentUser?._id && newMessage.receiveId === receiveId) ||
         (newMessage.sendId === receiveId && newMessage.receiveId === currentUser?._id)
       ) {
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        dispatch(addMessage(newMessage));
       }
     });
     //supprimer un message
     channel.bind("deleted", (deleteMessageId) => {
-      setMessages((prevMessages) =>
-        prevMessages.filter((message) => message._id !== deleteMessageId)
-      );
+      dispatch(deleteMessage(deleteMessageId))
     });
     //mise a jour d'un message
-    channel.bind("updated", (updateMessage) => {
-      setMessages(prevMessages => {
-        const messageIndex = prevMessages.findIndex(message => message._id === updateMessage._id);
-        if (messageIndex !== -1) {
-          const updatedMessages = [...prevMessages];
-          updatedMessages[messageIndex] = updateMessage;
-          return updatedMessages;
-        } else {
-          return prevMessages;
-        }
-      });
+    channel.bind("updated", (updatedMessage) => {
+      dispatch(updateMessage(updatedMessage))
     });
 
     return () => {
@@ -84,13 +105,14 @@ const Messages = ({ receiveId, setUpdate }) => {
   return (
     <div className="w-full h-full">
       {receiveId ? (
-        <div>
+        <div className="relative min-h-full">
           <div>
             {messages?.map((message, index) => {
               return <CardMessage key={index} message={message} setUpdate={setUpdate} />;
             })}
           </div>
           <div ref={messageEndRef}></div>
+          <Entrain newMessage={newMessage} receiveId={receiveId} />
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-slate-900">

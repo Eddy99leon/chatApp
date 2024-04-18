@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import Message from "../models/message.model.js";
+import User from "../models/user.model.js";
 import Pusher from "pusher";
 
 const router = express.Router();
@@ -15,9 +16,10 @@ const pusher = new Pusher({
 });
 
 
+//ENTRAIN D'ECRIRE
 router.post('/text-update', (req, res) => {
-  const { text } = req.body;
-  pusher.trigger('editor', 'text-update', { text });
+  const { text, name, receiveId } = req.body;
+  pusher.trigger(`${receiveId}`, 'text-update', { text, name });
   res.status(200).send('OK');
 });
 
@@ -25,12 +27,21 @@ router.post('/text-update', (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { sendId, sendName, receiveId, content, time } = req.body;
+
+    const user = await User.findById(receiveId);
+    let messageStatus = ''
+    if(user.isConnected){
+      messageStatus = 'non lu'
+    }else{
+      messageStatus = 'en attente'
+    }
     
     const message = await Message.create({
       sendId,
       sendName,
       receiveId,
       content,
+      statut: messageStatus,
       time,
     });
 
@@ -40,6 +51,7 @@ router.post("/", async (req, res) => {
       sendName: sendName,
       receiveId: receiveId,
       content: content,
+      statut: messageStatus,
       time: time,
     });
     pusher.trigger(`${sendId}`, "inserted", {
@@ -48,6 +60,7 @@ router.post("/", async (req, res) => {
       sendName: sendName,
       receiveId: receiveId,
       content: content,
+      statut: messageStatus,
       time: time,
     });
 
@@ -106,7 +119,7 @@ router.put("/:id", async (req, res) => {
     pusher.trigger(`${message.receiveId}`, "updated", message);
     pusher.trigger(`${message.sendId}`, "updated", message);
 
-    return res.status(200).json("Message update successfully", );
+    return res.status(200).json(message);
 
   } catch (error) {
     console.error(error);

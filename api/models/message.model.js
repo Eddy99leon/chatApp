@@ -19,6 +19,11 @@ const messageSchema = new Schema({
     type: String,
     require: true,
   },
+  statut: {
+    type: String,
+    enum: ['en attente', 'non lu', 'lu'],
+    require: true,
+  },
   time: {
     type: String,
     require: true,

@@ -5,19 +5,18 @@ import { makeRequest } from '../utils/axios';
 
 const PUSHER_KEY = "cd9b038ddbd2f6499c97";
 
-const Entrain = () => {
-    const [text, setText] = useState('');
-
-    console.log(text)
+const Entrain = ({ newMessage, receiveId }) => {
+    const [entrain, setEntrain] = useState();
+    const currentUser = JSON.parse(localStorage.getItem("userData"));
 
     useEffect(() => {
       const pusher = new Pusher(PUSHER_KEY, {
         cluster: "ap2",
       });
 
-      const channel = pusher.subscribe('editor');
+      const channel = pusher.subscribe(`${receiveId}`);
       channel.bind('text-update', data => {
-        setText(data.text);
+        setEntrain(data);
       });
   
       return () => {
@@ -25,26 +24,23 @@ const Entrain = () => {
         channel.unsubscribe();
       };
     }, []);
-  
-    const handleTextChange = async (e) => {
-      const newText = e.target.value;
-      setText(newText);
-      try {
-        await makeRequest.post('/api/messages/text-update', { text: newText });
-      } catch (error) {
-        console.error('Error updating text:', error);
-      }
-    };
+
+    useEffect(() => {
+      makeRequest.post('/api/messages/text-update', { text: newMessage, name: currentUser.name, receiveId: currentUser._id });
+    },[newMessage])
 
   return (
-    <div>
-      <h1 className='mb-2'>Real-Time</h1>
-      {text !== "" ? 
-        <div className='py-2'>Entrain d'ecrire...</div>
+    <div className='absolute bottom-0 left-0'>
+      {(entrain && entrain?.text !== "")?
+        <div className='py-2'>
+          <span className='font-bold capitalize mr-1'>
+            {entrain?.name} 
+          </span>
+          est entrain d'ecrire...
+        </div>
         :
         <div></div>
       }
-      <textarea value={text} onChange={handleTextChange} className=' bg-gray-800 text-white p-2 border-none outline-none' />
     </div>
   )
 }

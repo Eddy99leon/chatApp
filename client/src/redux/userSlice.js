@@ -9,7 +9,17 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     addUser: (state, action) => {
-      state.users.push(action.payload);
+      if(action.payload && typeof action.payload[Symbol.iterator] === 'function'){
+        return {
+          ...state,
+          users: [...state.users, ...action.payload]
+        }
+      }else{
+        return {
+          ...state,
+          users: [...state.users, action.payload]
+        }
+      }
     },
     updateUser: (state, action) => {
       const { id, updatedUserData } = action.payload;
@@ -19,8 +29,8 @@ const userSlice = createSlice({
       }
     },
     deleteUser: (state, action) => {
-      const userIdToDelete = action.payload;
-      state.users = state.users.filter(user => user.id !== userIdToDelete);
+      const userToDelete = action.payload;
+      state.users = state.users.filter(user => user.userId !== userToDelete.userId);
     },
   },
 });
